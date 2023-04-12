@@ -1,0 +1,67 @@
+---
+- name: Demo DDBoost Microsoft App Agent Deployment w/ PowerShell Await module
+  hosts: "{{ ansible_play_batch }}"
+  gather_facts: false
+  become: yes
+  collections:
+    - community.general
+   
+  vars:
+  vars_files:
+    - vars/credentials.yml
+
+  tasks:
+
+# DOWNLOAD THE SQL AGENT FROM ANSIBLE
+  - name: Copy Microsoft App Agent, {{sql_agent}}, to SQL Servers
+    win_copy:
+      src: /var/lib/awx/projects/common/{{sql_agent}}
+      dest: C:\Windows\Temp\
+    
+# PERFROM A SILENT INSTALL OF THE AGENT
+  - name: Install the Microsoft App Agent, {{sql_agent}}
+    win_command: C:\Windows\Temp\{{sql_agent}} -silent -log "C:\Windows\Temp\{{sql_agent}}_install.log" EnableSSMS=1 EnableCLR=1 
+    register: install_status
+  
+  - name:
+    debug:
+      var: install_status
+    
+# POWERSHELL SESSION TO CREATE, POPULATE, AND REGISTER THE LOCKBOX CONFIGURATION WITH DATA DOMAIN
+  - name: Create, populate and register the lockbox configuration
+    win_shell: |
+      # CREATE CONTENT FOR THE LOCKBOX CONFIG.CFG
+      $Content = @"
+      DDBOOST_USER={{dd_boost_user}}`r
+      DEVICE_HOST={{ddve_host}}.{{ad_domain}}`r
+      DEVICE_PATH=/{{dd_storage_unit}}`r
+      LOCKBOX_PATH="{{dd_boost_lb}}"`r
+      DEBUG_LEVEL=0`r
+      "@
+      
+      # CREATE CONFIG.CFG FILE CLOBBERS THE EXISTING CONFIG.CFG FILE
+      New-Item -Path "{{dd_boost_lb}}" -Name "config.cfg" -ItemType File -Force
+      
+      # ADD CONTENT TO THE CONFIG.CFG FILE
+      Add-Content -Path "{{dd_boost_lb}}\config.cfg" -Value $Content
+
+      <# 
+        CONFIGURE THE LOCKBOX WITH POWERSHELL AWAIT
+        THIS MODULE IS LIKE LINUX EXPECT BUT FOR WINDOWS
+        https://www.powershellgallery.com/packages/Await/0.8
+      #>
+
+      Import-Module Await
+      Start-AwaitSession
+      Send-AwaitCommand 'msagentadmin administration --registerLB --config "{{dd_boost_lb}}\config.cfg"'
+      Start-Sleep 4
+      Send-AwaitCommand {{ppdd_pwd}}
+      Start-Sleep 4
+      Send-AwaitCommand {{ppdd_pwd}}
+      Start-Sleep 10
+      Receive-AwaitResponse
+    register: cmd_out
+  
+  - name:
+    debug:
+      var: cmd_out.stdout_lines

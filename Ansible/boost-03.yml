@@ -1,0 +1,76 @@
+---
+- name: Demo DDBoost Microsoft App Agent Deployment w/ Python wexpect module
+  hosts: "{{ ansible_play_batch }}"
+  gather_facts: false
+  become: yes
+  collections:
+    - community.general
+   
+  vars:
+  vars_files:
+    - vars/credentials.yml
+
+  tasks:
+
+# DOWNLOAD THE SQL AGENT FROM ANSIBLE
+  - name: Copy Microsoft App Agent, {{sql_agent}}, to SQL Servers
+    win_copy:
+      src: /var/lib/awx/projects/common/{{sql_agent}}
+      dest: C:\Windows\Temp\
+    
+# PERFROM A SILENT INSTALL OF THE AGENT
+  - name: Install the Microsoft App Agent, {{sql_agent}}
+    win_command: C:\Windows\Temp\{{sql_agent}} -silent -log "C:\Windows\Temp\{{sql_agent}}_install.log" EnableSSMS=1 EnableCLR=1 
+    register: install_status
+  
+  - name:
+    debug:
+      var: install_status
+    
+# PYTHONS WEXPECT TO CREATE, POPULATE, AND REGISTER THE LOCKBOX CONFIGURATION WITH DATA DOMAIN
+  - name: Create, populate and register the lockbox configuration
+    win_shell: |
+      # CREATE CONTENT FOR THE LOCKBOX CONFIG.CFG
+      $Content = @"
+      DDBOOST_USER={{dd_boost_user}}`r
+      DEVICE_HOST={{ddve_host}}.{{ad_domain}}`r
+      DEVICE_PATH=/{{dd_storage_unit}}`r
+      LOCKBOX_PATH="{{dd_boost_lb}}"`r
+      DEBUG_LEVEL=0`r
+      "@
+      
+      # CREATE CONFIG.CFG FILE CLOBBERS THE EXISTING CONFIG.CFG FILE
+      New-Item -Path "{{dd_boost_lb}}" -Name "config.cfg" -ItemType File -Force
+      
+      # ADD CONTENT TO THE CONFIG.CFG FILE
+      Add-Content -Path "{{dd_boost_lb}}\config.cfg" -Value $Content
+
+      # CREATE THE PYTHON SCRIPT TO REGISTER THE LOCKBOX
+      $Register = @"
+      import wexpect `r
+      import time `r
+      import sys `r
+      child = wexpect.spawn('msagentadmin administration --registerLB --config "{{dd_boost_lb}}\config.cfg"') `r
+      time.sleep(4) `r
+      child.sendline('{}'.format(sys.argv[1])) `r
+      time.sleep(4) `r
+      child.sendline('{}'.format(sys.argv[1])) `r
+      time.sleep(10) `r
+      print(child.read()) `r
+      exit() `r
+      "@
+
+      # CREATE AN EMPTY SCRIPT FILE
+      New-Item -Path "C:\Windows\Temp" -Name "registerlockbox.py" -ItemType File -Force
+
+      # ADD CONTENT TO THE CONFIG.CFG FILE
+      Add-Content -Path "C:\Windows\Temp\registerlockbox.py" -Value $Register
+
+      # EXECUTE THE LOCKBOX REGISTRATION
+      python C:\Windows\Temp\registerlockbox.py {{ppdd_pwd}}
+
+    register: shell_out
+  
+  - name:
+    debug:
+      var: shell_out.stdout_lines
