@@ -53,7 +53,7 @@
       child = wexpect.spawn('msagentadmin administration --registerLB --config "{{dd_boost_lb}}\config.cfg"') `r
       child.expect('Enter password') `r
       child.sendline('{}'.format(sys.argv[1])) `r
-      child.expect('Type again to confirm:') `r
+      child.expect('Type again to confirm') `r
       child.sendline('{}'.format(sys.argv[1])) `r
       time.sleep(10) `r
       print(child.read()) `r
