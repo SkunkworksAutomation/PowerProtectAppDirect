@@ -51,9 +51,9 @@
       import time `r
       import sys `r
       child = wexpect.spawn('msagentadmin administration --registerLB --config "{{dd_boost_lb}}\config.cfg"') `r
-      time.sleep(4) `r
+      child.expect('Enter password') `r
       child.sendline('{}'.format(sys.argv[1])) `r
-      time.sleep(4) `r
+      child.expect('Type again to confirm:') `r
       child.sendline('{}'.format(sys.argv[1])) `r
       time.sleep(10) `r
       print(child.read()) `r
@@ -68,7 +68,6 @@
 
       # EXECUTE THE LOCKBOX REGISTRATION
       python C:\Windows\Temp\registerlockbox.py {{ppdd_pwd}}
-
     register: shell_out
   
   - name:
