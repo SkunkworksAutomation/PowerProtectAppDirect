@@ -63,7 +63,7 @@
       # CREATE AN EMPTY SCRIPT FILE
       New-Item -Path "C:\Windows\Temp" -Name "registerlockbox.py" -ItemType File -Force
 
-      # ADD CONTENT TO THE CONFIG.CFG FILE
+      # ADD CONTENT TO THE REGISTERLOCKBOX.PY FILE
       Add-Content -Path "C:\Windows\Temp\registerlockbox.py" -Value $Register
 
       # EXECUTE THE LOCKBOX REGISTRATION
