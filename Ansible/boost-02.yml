@@ -54,9 +54,11 @@
       Import-Module Await
       Start-AwaitSession
       Send-AwaitCommand 'msagentadmin administration --registerLB --config "{{dd_boost_lb}}\config.cfg"'
-      Start-Sleep 4
+      # Start-Sleep 4
+      Receive-AwaitResponse 'Enter password'
       Send-AwaitCommand {{ppdd_pwd}}
-      Start-Sleep 4
+      # Start-Sleep 4
+      Receive-AwaitResponse 'Type again to confirm'
       Send-AwaitCommand {{ppdd_pwd}}
       Start-Sleep 10
       Receive-AwaitResponse
