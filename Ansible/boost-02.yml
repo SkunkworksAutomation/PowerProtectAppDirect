@@ -53,13 +53,19 @@
 
       Import-Module Await
       Start-AwaitSession
+      
+      # EXECUTE THE LOCKBOX REGISTRATION COMMAND
       Send-AwaitCommand 'msagentadmin administration --registerLB --config "{{dd_boost_lb}}\config.cfg"'
-      # Start-Sleep 4
-      Receive-AwaitResponse 'Enter password'
+
+      # LOOK FOR FIRST PASSWORD PROMPT AND RESPOND
+      Wait-AwaitResponse 'Enter password'
       Send-AwaitCommand {{ppdd_pwd}}
-      # Start-Sleep 4
-      Receive-AwaitResponse 'Type again to confirm'
+
+      # LOOK FOR NEXT PASSWORD PROMPT AND RESPOND
+      Wait-AwaitResponse 'Type again to confirm'
       Send-AwaitCommand {{ppdd_pwd}}
+
+      # GIVE SOME TIME FOR THE REGISTRATION TO COMPLETE
       Start-Sleep 10
       Receive-AwaitResponse
     register: cmd_out
