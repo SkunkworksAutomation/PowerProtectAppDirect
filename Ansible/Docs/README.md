@@ -1,4 +1,3 @@
-## Automating the interactive Microsoft App agent install and lockbox registration
 | Task     | Description                                                                   |
 | -------- |:-----------------------------------------------------------------------------:|
 | BOOST-01 | Create a storage unit, user, assign boost access, assign user to storage unit |
